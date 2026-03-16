@@ -1,4 +1,4 @@
-# Cardiovascular Clinical Explorer
+# Cardiovascular Clinical Explorer R Shiny App
 
 ## Overview
 
