@@ -1,6 +1,7 @@
 #
 # Cardiovascular Clinical Explorer
-# Shiny app
+# Shiny App
+# Exploring Shiny Capabilities
 #
 
 options(stringsAsFactors = FALSE)
@@ -13,13 +14,13 @@ library(ggplot2)
 library(shinythemes)
 library(psych)
 library(haven)
+library(DT)
 
-# Load dataset ----
+# Load dataset 
 
 heart <- read_sas("heart.sas7bdat")
 
-
-# Risk score ----
+# Risk score 
 
 heart <- heart %>%
   
@@ -35,7 +36,7 @@ heart <- heart %>%
     
   )
 
-# Risk category ----
+# Risk category 
 
 heart <- heart %>%
   
@@ -55,7 +56,7 @@ heart <- heart %>%
     
   )
 
-# Age limits (dynamic)
+# Age limits 
 
 age_min <- min(heart$AgeAtStart,na.rm=TRUE)
 
@@ -63,12 +64,29 @@ age_max <- max(heart$AgeAtStart,na.rm=TRUE)
 
 
 
-
-# UI ----
+# UI ---- User interface
 
 ui <- fluidPage(
   
   theme = shinytheme("slate"),
+  
+  # Fix DT dark theme issue
+  
+  tags$style(HTML("
+
+table.dataTable {
+color: white;
+}
+
+.dataTables_wrapper {
+color: white;
+}
+
+.dataTables_filter label {
+color:white;
+}
+
+")),
   
   titlePanel("Cardiovascular Clinical Explorer"),
   
@@ -224,7 +242,11 @@ ui <- fluidPage(
           
           plotOutput("riskdist"),
           
+          br(),
+          
           plotOutput("risksmoke"),
+          
+          br(),
           
           plotOutput("riskbp")
           
@@ -236,8 +258,23 @@ ui <- fluidPage(
           
           h3("Variable Relationship Explorer"),
           
-          plotOutput("scatter",
-                     height="550px")
+          plotOutput(
+            "scatter",
+            height="550px"
+          )
+          
+        ),
+        
+        tabPanel(
+          
+          "Dataset",
+          
+          h3("Clinical Dataset"),
+          
+          p("Filtered dataset based on selected filters",
+            style="color:lightgray"),
+          
+          DTOutput("datatable")
           
         )
         
@@ -251,8 +288,7 @@ ui <- fluidPage(
 
 
 
-
-# Server ----
+# Server 
 
 server <- function(input,output){
   
@@ -304,7 +340,9 @@ server <- function(input,output){
     
   })
   
-  # Summary stats
+  
+  
+  # Summary statistics 
   
   output$stats <- renderTable({
     
@@ -334,13 +372,16 @@ server <- function(input,output){
     
   },rownames=TRUE)
   
-  # Age distribution
+  
+  
+  # Age distribution 
   
   output$agedist <- renderPlot({
     
-    ggplot(filtered(),
-           
-           aes(AgeAtStart))+
+    ggplot(
+      filtered(),
+      aes(AgeAtStart)
+    )+
       
       geom_histogram(
         
@@ -364,14 +405,17 @@ server <- function(input,output){
     
   })
   
-  # Risk distribution
+  
+  
+  # Risk distribution 
   
   output$riskdist <- renderPlot({
     
-    ggplot(filtered(),
-           
-           aes(risk_category,
-               fill=risk_category))+
+    ggplot(
+      filtered(),
+      aes(risk_category,
+          fill=risk_category)
+    )+
       
       geom_bar()+
       
@@ -399,14 +443,19 @@ server <- function(input,output){
     
   })
   
-  # Risk by smoking
+  
+  
+  # Risk vs smoking 
   
   output$risksmoke <- renderPlot({
     
-    ggplot(filtered(),
-           
-           aes(Smoking_Status,
-               fill=risk_category))+
+    ggplot(
+      filtered(),
+      aes(
+        Smoking_Status,
+        fill=risk_category
+      )
+    )+
       
       geom_bar(position="fill")+
       
@@ -425,8 +474,10 @@ server <- function(input,output){
       theme(
         
         axis.text.x=
-          element_text(angle=45,
-                       hjust=1)
+          element_text(
+            angle=45,
+            hjust=1
+          )
         
       )+
       
@@ -442,14 +493,19 @@ server <- function(input,output){
     
   })
   
-  # Risk by BP
+  
+  
+  # Risk vs BP 
   
   output$riskbp <- renderPlot({
     
-    ggplot(filtered(),
-           
-           aes(BP_Status,
-               fill=risk_category))+
+    ggplot(
+      filtered(),
+      aes(
+        BP_Status,
+        fill=risk_category
+      )
+    )+
       
       geom_bar(position="fill")+
       
@@ -477,23 +533,21 @@ server <- function(input,output){
     
   })
   
-  # Scatter explorer
+  
+  
+  # Clinical explorer
   
   output$scatter <- renderPlot({
     
-    ggplot(filtered(),
-           
-           aes(
-             
-             x=.data[[input$xvar]],
-             
-             y=.data[[input$yvar]],
-             
-             color=.data[[input$color]],
-             
-             size=.data[[input$size]]
-             
-           ))+
+    ggplot(
+      filtered(),
+      aes(
+        x=.data[[input$xvar]],
+        y=.data[[input$yvar]],
+        color=.data[[input$color]],
+        size=.data[[input$size]]
+      )
+    )+
       
       geom_point(alpha=.7)+
       
@@ -502,11 +556,9 @@ server <- function(input,output){
       labs(
         
         title=paste(
-          
           input$yvar,
           "vs",
           input$xvar
-          
         ),
         
         x=input$xvar,
@@ -517,10 +569,44 @@ server <- function(input,output){
     
   })
   
+  
+  
+  # Dataset table 
+  
+  output$datatable <- renderDT({
+    
+    datatable(
+      
+      filtered(),
+      
+      filter="top",
+      
+      extensions='Buttons',
+      
+      options=list(
+        
+        pageLength=10,
+        
+        scrollX=TRUE,
+        
+        dom='Bfrtip',
+        
+        buttons=c('copy','csv','excel')
+        
+      ),
+      
+      class='display',
+      
+      rownames=FALSE
+      
+    )
+    
+  })
+  
 }
 
 
 
-# Run app ----
+# Run Shiny app 
 
 shinyApp(ui = ui, server = server)
